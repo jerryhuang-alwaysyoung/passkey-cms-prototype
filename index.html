@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passkey Management · XREX CMS Prototype</title>
+<style>
+:root{
+  --bg:#f5f6f8;--panel:#fff;--border:#e5e7eb;--border-strong:#d9d9d9;--text:#1f2329;--muted:#6b7280;--faint:#9ca3af;
+  --blue:#1677ff;--blue-bg:#e6f4ff;--blue-hover:#4096ff;--red:#d4380d;--red-bg:#fff2e8;--red-strong:#cf1322;
+  --green:#389e0d;--green-bg:#f6ffed;--orange:#d46b08;--orange-bg:#fff7e6;--gray-bg:#f3f4f6;--note:#fffbe6;--note-border:#ffe58f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.proto-bar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:6px 16px;background:#262b33;color:#e5e7eb;font-size:12px}
+.proto-bar b{color:#fff;font-weight:600;margin-right:4px}
+.proto-bar label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.proto-bar select{background:#3a404a;border:1px solid #4b5260;border-radius:4px;color:#fff;padding:1px 6px}
+.proto-bar .tag{margin-left:auto;color:#9ca3af}
+.layout{display:flex;min-height:calc(100vh - 32px)}
+.sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);padding:16px 0}
+.sidebar .brand{font-weight:700;font-size:16px;padding:0 20px 14px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.sidebar .group{padding:10px 20px 4px;color:var(--muted);font-size:12px}
+.sidebar .item{display:block;padding:8px 20px 8px 36px;color:var(--text);text-decoration:none;border-left:3px solid transparent;cursor:default}
+.sidebar .item.inert{color:var(--faint)}
+.sidebar .item.active{background:var(--blue-bg);color:var(--blue);border-left-color:var(--blue);font-weight:500}
+.main{flex:1;min-width:0;padding:16px 24px 48px}
+.crumb{color:var(--muted);font-size:12px}
+.crumb span{color:var(--text)}
+.page-head{display:flex;align-items:center;justify-content:space-between;margin:4px 0 16px}
+.page-head h1{font-size:20px;margin:0;font-weight:600}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:16px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.panel-head h2{font-size:15px;margin:0;font-weight:600}
+.panel-head .sub{color:var(--muted);font-size:12px;font-weight:400;margin-left:8px}
+.search{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.input,.select{height:32px;border:1px solid var(--border-strong);border-radius:6px;padding:0 10px;background:#fff}
+.input:focus,.select:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(22,119,255,.12)}
+.input.wide{width:280px}
+.btn{height:32px;padding:0 15px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--blue-hover);color:var(--blue-hover)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover:not(:disabled){background:var(--blue-hover);color:#fff}
+.btn.danger{color:var(--red-strong);border-color:#ffa39e}
+.btn.danger:hover:not(:disabled){color:#fff;background:var(--red-strong);border-color:var(--red-strong)}
+.btn.danger-solid{background:var(--red-strong);border-color:var(--red-strong);color:#fff}
+.btn.danger-solid:hover:not(:disabled){background:#e0342b;border-color:#e0342b;color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.link{background:none;border:0;padding:0;color:var(--blue);cursor:pointer}
+.link.danger{color:var(--red-strong)}
+.link:disabled{color:var(--faint);cursor:not-allowed}
+.hint{color:var(--muted);font-size:12px;margin-top:8px}
+.hint code{background:var(--gray-bg);padding:0 4px;border-radius:3px;cursor:pointer}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 24px}
+.summary dt{color:var(--muted);font-size:12px}
+.summary dd{margin:2px 0 0;font-weight:500}
+table{width:100%;border-collapse:collapse}
+th{background:#fafafa;text-align:left;font-weight:600;color:#374151;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+tr:hover td{background:#fafcff}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.muted{color:var(--muted)}
+.tag{display:inline-block;padding:0 7px;border-radius:4px;font-size:12px;line-height:20px;border:1px solid transparent;white-space:nowrap}
+.tag.blue{background:var(--blue-bg);color:var(--blue);border-color:#91caff}
+.tag.green{background:var(--green-bg);color:var(--green);border-color:#b7eb8f}
+.tag.red{background:var(--red-bg);color:var(--red);border-color:#ffbb96}
+.tag.orange{background:var(--orange-bg);color:var(--orange);border-color:#ffd591}
+.tag.gray{background:var(--gray-bg);color:#4b5563;border-color:var(--border)}
+.cap{font-weight:600}
+.cap.full{color:var(--orange)}
+.empty{text-align:center;color:var(--muted);padding:32px 0}
+.alert{border-radius:6px;padding:10px 14px;margin-bottom:12px;display:flex;gap:8px}
+.alert.error{background:#fff2f0;border:1px solid #ffccc7;color:#a8071a}
+.alert.info{background:var(--blue-bg);border:1px solid #91caff;color:#0958d9}
+.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.note{display:none;background:var(--note);border:1px dashed var(--note-border);color:#7c5800;border-radius:4px;font-size:11.5px;padding:2px 6px;margin-top:6px;line-height:1.5}
+body.show-notes .note{display:block}
+body.show-notes .note.inline{display:inline-block;margin:0 0 0 6px}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:none;align-items:center;justify-content:center;padding:16px}
+.mask.open{display:flex}
+.modal{background:#fff;border-radius:8px;width:520px;max-width:100%;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border)}
+.modal-head h3{margin:0;font-size:15px}
+.modal-body{padding:16px 20px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--border)}
+.x{background:none;border:0;font-size:18px;color:var(--muted);cursor:pointer;line-height:1}
+.field{margin-bottom:14px}
+.field label{display:block;margin-bottom:6px;font-weight:500}
+.field label .req{color:var(--red-strong);margin-right:2px}
+.field .select,.field textarea{width:100%}
+textarea{border:1px solid var(--border-strong);border-radius:6px;padding:6px 10px;min-height:72px;resize:vertical}
+.err{color:var(--red-strong);font-size:12px;margin-top:4px;display:none}
+.field.invalid .select,.field.invalid textarea{border-color:var(--red-strong)}
+.field.invalid .err{display:block}
+.target{background:#fafafa;border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:14px}
+.target ul{margin:4px 0 0;padding-left:18px}
+.toast{position:fixed;top:48px;left:50%;transform:translateX(-50%);background:#fff;border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,.12);padding:10px 16px;z-index:50;display:none;align-items:center;gap:8px}
+.toast.show{display:flex}
+.toast .dot{width:16px;height:16px;border-radius:50%;background:var(--green);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center}
+.noaccess{text-align:center;padding:64px 16px;color:var(--muted)}
+.table-wrap{overflow-x:auto}
+@media (max-width:760px){.sidebar{display:none}.main{padding:16px}.input.wide{width:100%}}
+</style>
+</head>
+<body>
+
+<div class="proto-bar" role="region" aria-label="Prototype controls">
+  <b>Prototype controls</b>
+  <label>CMS role
+    <select id="roleSel">
+      <option value="cs">Customer Service team</option>
+      <option value="other">Other CMS role (no CS permission)</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="errChk"> Simulate webauthn service unavailable</label>
+  <span class="tag">Demo data only · PRD v0.16 · OPS-01 / OPS-02</span>
+</div>
+
+<div class="layout">
+  <aside class="sidebar" aria-label="CMS navigation">
+    <div class="brand">Exchange</div>
+    <div class="group">User Management</div>
+    <a class="item inert" title="Out of prototype scope">User List</a>
+    <a class="item active" id="navPasskey">Passkey Management</a>
+    <div class="group">KYC</div>
+    <a class="item inert" title="Out of prototype scope">KYC Review</a>
+    <div class="group">Product Management</div>
+    <a class="item inert" title="Out of prototype scope">Trading Pairs</a>
+    <div class="group">Convert</div>
+    <a class="item inert" title="Out of prototype scope">Convert Settings</a>
+    <div class="group">Auto-invest</div>
+    <a class="item inert" title="Out of prototype scope">Plans</a>
+  </aside>
+
+  <main class="main" id="main">
+    <div id="pageNoAccess" class="noaccess" hidden>
+      <div style="font-size:16px;color:var(--text);margin-bottom:6px">Passkey Management is not available for your role</div>
+      <div>This page and its revoke actions are only visible to the Customer Service team.</div>
+    </div>
+
+    <div id="pageList">
+      <div class="crumb">User Management / <span>Passkey Management</span></div>
+      <div class="page-head"><h1>Passkey Management</h1></div>
+
+      <section class="panel" aria-label="Filters">
+        <form class="search" id="searchForm" autocomplete="off">
+          <select class="select" id="searchType" aria-label="Search by">
+            <option value="uid">UID</option>
+            <option value="email">Email</option>
+            <option value="phone">Phone</option>
+          </select>
+          <input class="input wide" id="searchInput" placeholder="Enter UID" aria-label="Search value">
+          <button class="btn primary" type="submit">Search</button>
+          <button class="btn" type="button" id="resetBtn">Reset</button>
+        </form>
+      </section>
+
+      <section class="panel" aria-label="Users with passkey">
+        <div class="panel-head"><h2>Users with active passkey<span class="sub" id="listCount"></span></h2></div>
+        <div id="listBody"></div>
+      </section>
+    </div>
+
+    <div id="pageDetail" hidden>
+      <div class="crumb">User Management / <a href="#" class="link" id="crumbBack">Passkey Management</a> / <span id="crumbUid"></span></div>
+      <div class="page-head"><h1 id="detailTitle"></h1><div class="head-actions"><button class="btn" id="backBtn">← Back to list</button><button class="icon-btn" id="logBtn" aria-label="Activity Log" title="Activity Log"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/><path d="M12 7v5l3 2"/></svg></button></div></div>
+      <div id="detailBody"></div>
+    </div>
+  </main>
+</div>
+
+<div class="mask" id="revokeMask" role="dialog" aria-modal="true" aria-labelledby="revokeTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="revokeTitle">Revoke passkey</h3><button class="x" data-close aria-label="Close" title="Close">×</button></div>
+    <div class="modal-body">
+      <div class="target" id="revokeTarget"></div>
+      <div class="field" id="fReason">
+        <label for="reasonSel"><span class="req">*</span>Reason</label>
+        <select class="select" id="reasonSel">
+          <option value="">Select a reason</option>
+          <option value="lost_device">User reported lost or stolen device</option>
+          <option value="suspicious_login">User reported suspicious login</option>
+          <option value="user_request">User requested removal</option>
+          <option value="other">Other</option>
+        </select>
+        <div class="err">Please select a reason.</div>
+      </div>
+      <div class="field" id="fNote">
+        <label for="noteTxt"><span class="req" id="noteReq" hidden>*</span>Note</label>
+        <textarea id="noteTxt" maxlength="300" placeholder="e.g. ticket number, what the user reported"></textarea>
+        <div class="err">Note is required when the reason is “Other”.</div>
+      </div>
+      <div class="alert info" style="margin:0">The credential stops working immediately. The user will receive an Email notification (no push). They can still sign in with password and enroll again.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn danger-solid" id="confirmRevoke">Revoke</button>
+    </div>
+  </div>
+</div>
+
+<div class="drawer-mask" id="logMask"></div>
+<aside class="drawer" id="logDrawer" role="dialog" aria-modal="true" aria-labelledby="logTitle">
+  <div class="drawer-head"><h3 id="logTitle">Activity Log</h3><button class="x" id="logClose" aria-label="Close" title="Close">×</button></div>
+  <div class="drawer-filter"><span class="muted">From</span><input type="date" class="input" id="fromD" aria-label="From date"><span class="muted">To</span><input type="date" class="input" id="toD" aria-label="To date"><button class="btn" id="clearDates">Clear</button></div>
+  <div class="drawer-body" id="logBody"></div>
+</aside>
+
+<div class="toast" id="toast" role="status"><span class="dot">✓</span><span id="toastMsg"></span></div>
+
+<style>
+.pager{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:12px;color:var(--muted)}
+.pager button{min-width:32px;height:32px;border:1px solid var(--border-strong);background:#fff;border-radius:6px;cursor:pointer}
+.pager button.on{border-color:var(--blue);color:var(--blue)}
+.pager button:disabled{opacity:.4;cursor:not-allowed}
+a.link{text-decoration:none}
+.head-actions{display:flex;align-items:center;gap:8px}
+.icon-btn{background:transparent;border:0;padding:4px;color:#4b5563;cursor:pointer;border-radius:4px;display:inline-flex}
+.icon-btn:hover{color:var(--blue)}
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:none}
+.drawer-mask.open{display:block}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:520px;max-width:100%;background:#fff;z-index:41;box-shadow:-6px 0 16px rgba(0,0,0,.08);transform:translateX(100%);transition:transform .2s ease;display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--border)}
+.drawer-head h3{margin:0;font-size:16px}
+.drawer-filter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 24px;border-bottom:1px solid var(--border)}
+.drawer-filter .input{width:150px}
+.drawer-body{flex:1;overflow-y:auto;padding:20px 24px}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{position:relative;padding:0 0 22px 24px}
+.tl li:before{content:"";position:absolute;left:5px;top:14px;bottom:0;width:2px;background:#f0f0f0}
+.tl li:last-child:before{display:none}
+.tl .dot{position:absolute;left:0;top:5px;width:12px;height:12px;border-radius:50%;border:2px solid var(--blue);background:#fff}
+.tl .dot.red{border-color:var(--red-strong)}.tl .dot.green{border-color:var(--green)}.tl .dot.orange{border-color:var(--orange)}.tl .dot.gray{border-color:#bfbfbf}
+.tl .who{font-weight:500}
+.tl .when{color:var(--muted);font-size:12px;margin-top:2px}
+.tl .meta{margin-top:6px;color:#4b5563;font-size:12px}
+.tl .meta span{margin-right:12px}
+.tl .memo{margin-top:6px;background:#fafafa;border-left:3px solid var(--border-strong);padding:4px 8px;font-size:12px}
+.diff{margin-top:8px;width:100%;border:1px solid var(--border);border-radius:6px;font-size:12px}
+.diff th,.diff td{padding:6px 10px}
+.diff td.to{background:var(--blue-bg);color:#0958d9;font-weight:500}
+</style>
+
+<script>
+(function(){
+  var CS_AGENT='cs.amy.lin', PAGE_SIZE=10;
+  var EVENT_LABEL={enroll:['Passkey enrolled','green'],revoke:['Passkey revoked','red'],expire:['Passkey expired','orange'],view:['Viewed in CMS','gray']};
+  var REASON_LABEL={lost_device:'User reported lost or stolen device',suspicious_login:'User reported suspicious login',user_request:'User requested removal',other:'Other',user:'Revoked by user in app','2fa_reset':'Google 2FA reset by CS',password_reset:'Password reset',inactivity:'Inactive over N days'};
+
+  var $=function(id){return document.getElementById(id);};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function pad(n){return (n<10?'0':'')+n;}
+  function fmt(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
+  function now(){return fmt(new Date());}
+  function errOn(){return $('errChk').checked;}
+
+  /* ---------- demo data ---------- */
+  var seed=7; function rnd(){seed=(seed*9301+49297)%233280;return seed/233280;}
+  function pick(a){return a[Math.floor(rnd()*a.length)];}
+  function hex(n){var s='';for(var i=0;i<n;i++)s+='0123456789abcdef'[Math.floor(rnd()*16)];return s;}
+  function day(offset,h,m){var d=new Date(2026,9,14,h,m);d.setDate(d.getDate()-offset);return fmt(d);}
+  var DEVICES=[['iPhone 15','iOS 18.1'],['iPhone 14 Pro','iOS 18.0'],['iPhone 13','iOS 17.6'],['Pixel 8','Android 15'],['Galaxy S24','Android 14'],['iPad Air','iPadOS 18.0'],['Xiaomi 14','Android 14']];
+  var NAMES=['ch','li','wa','ts','ho','ke','an','yu','pe','mi','da','jo','sa','ri','to','ev','ni','al','be','co','fr','gr'];
+
+  var users=[];
+  function mkDevice(id,createdOff){
+    var d=pick(DEVICES), lastOff=Math.max(1,createdOff-Math.floor(rnd()*createdOff));
+    return {id:id,name:d[0],platform:d[1],created:day(createdOff,8+Math.floor(rnd()*12),Math.floor(rnd()*60)),lastUsed:day(lastOff,7+Math.floor(rnd()*15),Math.floor(rnd()*60)),cred:'cred_'+hex(4)+'…'+hex(4),token:'dtk_'+hex(4)+'…'+hex(4)};
+  }
+  function addUser(u){u.devices.sort(function(a,b){return a.created<b.created?-1:1;});users.push(u);return u;}
+
+  addUser({uid:'86523',email:'je***@gmail.com',emailRaw:'jerry.demo@gmail.com',phone:'+886 9**-***-321',phoneRaw:'+886912345321',status:'Active',twofa:'Enabled',firstEnrolled:'2026-08-02 14:21',
+    devices:[
+      {id:'d1',name:"Jerry's iPhone 15",platform:'iOS 18.1',created:'2026-08-02 14:21',lastUsed:'2026-10-13 09:12',cred:'cred_7f3a…c91e',token:'dtk_91a2…44b0'},
+      {id:'d2',name:'Pixel 8',platform:'Android 15',created:'2026-09-10 20:03',lastUsed:'2026-09-28 22:40',cred:'cred_2b90…07d4',token:'dtk_c3f1…9e2a'},
+      {id:'d3',name:'iPad Air',platform:'iPadOS 18.0',created:'2026-09-21 11:15',lastUsed:'2026-09-21 11:16',cred:'cred_e41c…5a7f',token:'dtk_08bd…71c3'}],
+    audit:[
+      {t:'2026-09-21 11:15',ev:'enroll',actorType:'user',actor:'86523',dev:'iPad Air',token:'dtk_08bd…71c3',cred:'cred_e41c…5a7f',reason:'',result:'success'},
+      {t:'2026-09-10 20:03',ev:'enroll',actorType:'user',actor:'86523',dev:'Pixel 8',token:'dtk_c3f1…9e2a',cred:'cred_2b90…07d4',reason:'',result:'success'},
+      {t:'2026-09-05 15:32',ev:'revoke',actorType:'cs',actor:'cs.kevin.wu',dev:'iPhone 12',token:'dtk_3b6e…d81f',cred:'cred_a77c…20e9',reason:'lost_device',note:'Ticket #57902：使用者來電表示 iPhone 12 遺失，已核對身分',result:'success'},
+      {t:'2026-09-05 15:29',ev:'view',actorType:'cs',actor:'cs.kevin.wu',dev:'—',token:'—',cred:'—',reason:'',result:'success'},
+      {t:'2026-09-02 16:48',ev:'revoke',actorType:'user',actor:'86523',dev:'Galaxy S22',token:'dtk_5e77…b210',cred:'cred_90aa…13ce',reason:'user',result:'success'},
+      {t:'2026-08-20 18:44',ev:'enroll',actorType:'user',actor:'86523',dev:'iPhone 12',token:'dtk_3b6e…d81f',cred:'cred_a77c…20e9',reason:'',result:'success'},
+      {t:'2026-08-15 10:02',ev:'enroll',actorType:'user',actor:'86523',dev:'Galaxy S22',token:'dtk_5e77…b210',cred:'cred_90aa…13ce',reason:'',result:'success'},
+      {t:'2026-08-02 14:21',ev:'enroll',actorType:'user',actor:'86523',dev:"Jerry's iPhone 15",token:'dtk_91a2…44b0',cred:'cred_7f3a…c91e',reason:'',result:'success'}]});
+
+  addUser({uid:'91877',email:'ma***@xrex.io',emailRaw:'mark.demo@xrex.io',phone:'+886 9**-***-118',phoneRaw:'+886933221118',status:'Active',twofa:'Enabled',firstEnrolled:'2026-05-03 21:10',
+    devices:[{id:'d1',name:'iPhone 15 Pro',platform:'iOS 18.1',created:'2026-10-08 19:22',lastUsed:'2026-10-12 08:05',cred:'cred_4ad0…e215',token:'dtk_6c19…a0f7'}],
+    audit:[
+      {t:'2026-10-08 19:22',ev:'enroll',actorType:'user',actor:'91877',dev:'iPhone 15 Pro',token:'dtk_6c19…a0f7',cred:'cred_4ad0…e215',reason:'',result:'success'},
+      {t:'2026-10-05 14:30',ev:'revoke',actorType:'cs',actor:'cs.kevin.wu',dev:'iPhone 13',token:'dtk_77e0…2c19',cred:'cred_31fd…88a0',reason:'2fa_reset',note:'Ticket #58231',result:'success'},
+      {t:'2026-09-30 03:00',ev:'expire',actorType:'system',actor:'webauthn-service',dev:'iPhone 11',token:'dtk_a1c4…6f02',cred:'cred_c2e8…4b91',reason:'inactivity',result:'success'},
+      {t:'2026-07-18 09:41',ev:'enroll',actorType:'user',actor:'91877',dev:'iPhone 13',token:'dtk_77e0…2c19',cred:'cred_31fd…88a0',reason:'',result:'success'},
+      {t:'2026-05-03 21:10',ev:'enroll',actorType:'user',actor:'91877',dev:'iPhone 11',token:'dtk_a1c4…6f02',cred:'cred_c2e8…4b91',reason:'',result:'success'}]});
+
+  for(var i=0;i<22;i++){
+    var uid=String(10000+Math.floor(rnd()*90000)), n=1+Math.floor(rnd()*3), firstOff=10+Math.floor(rnd()*140), devs=[], audit=[];
+    for(var k=0;k<n;k++){
+      var off=k===0?firstOff:1+Math.floor(rnd()*firstOff);
+      var d=mkDevice('d'+(k+1),off); devs.push(d);
+      audit.push({t:d.created,ev:'enroll',actorType:'user',actor:uid,dev:d.name,token:d.token,cred:d.cred,reason:'',result:'success'});
+    }
+    if(rnd()<0.3){var gone=mkDevice('x',firstOff+5), rt=day(Math.floor(rnd()*firstOff),10,15);
+      audit.push({t:gone.created,ev:'enroll',actorType:'user',actor:uid,dev:gone.name,token:gone.token,cred:gone.cred,reason:'',result:'success'});
+      audit.push({t:rt,ev:'revoke',actorType:'user',actor:uid,dev:gone.name,token:gone.token,cred:gone.cred,reason:'user',result:'success'});}
+    audit.sort(function(a,b){return a.t<b.t?1:-1;});
+    var nm=NAMES[i];
+    addUser({uid:uid,email:nm+'***@'+pick(['gmail.com','yahoo.com.tw','outlook.com']),emailRaw:nm+'.demo'+i+'@example.com',
+      phone:'+886 9**-***-'+String(100+Math.floor(rnd()*900)),phoneRaw:'+8869'+String(10000000+Math.floor(rnd()*89999999)),status:'Active',twofa:pick(['Enabled','Enabled','Disabled']),
+      firstEnrolled:audit[audit.length-1].t,devices:devs,audit:audit});
+  }
+
+  function updatedOf(u){for(var i=0;i<u.audit.length;i++){if(u.audit[i].ev!=='view')return u.audit[i].t;}return '';}
+  function lastUsedOf(u){return u.devices.reduce(function(m,d){return d.lastUsed>m?d.lastUsed:m;},'');}
+  function kycTag(k){var c=k==='APPROVED'?'green':(/REJECTED|SUSPENDED|RESTRICTED/.test(k)?'red':'orange');return '<span class="tag '+c+'">'+esc(k)+'</span>';}
+  users.forEach(function(u){u.kyc=u.kyc||'APPROVED';});
+  function byUid(id){for(var i=0;i<users.length;i++)if(users[i].uid===id)return users[i];return null;}
+
+  /* ---------- list page ---------- */
+  var listState={type:'uid',q:'',from:'',to:'',page:1};
+
+  function filtered(){
+    var q=listState.q.trim().toLowerCase();
+    return users.filter(function(u){
+      if(!u.devices.length) return false;
+      if(q){
+        if(listState.type==='uid'&&u.uid!==q) return false;
+        if(listState.type==='email'&&u.emailRaw.toLowerCase()!==q) return false;
+        if(listState.type==='phone'&&u.phoneRaw.replace(/\D/g,'')!==q.replace(/\D/g,'')) return false;
+      }
+      return true;
+    }).sort(function(a,b){return a.firstEnrolled<b.firstEnrolled?1:-1;});
+  }
+
+  function renderList(){
+    var body=$('listBody');
+    if(errOn()){
+      $('listCount').textContent='';
+      body.innerHTML='<div class="alert error">Passkey data is temporarily unavailable (webauthn service did not respond). Please retry later.</div>'+
+        '';
+      return;
+    }
+    var rows=filtered(), total=rows.length, pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+    if(listState.page>pages) listState.page=pages;
+    $('listCount').textContent='Total '+total;
+    if(!total){
+      body.innerHTML='<div class="empty">'+(listState.q?'No user with active passkey matches this search.':'No users with active passkey.')+'</div>';
+      return;
+    }
+    var slice=rows.slice((listState.page-1)*PAGE_SIZE,listState.page*PAGE_SIZE);
+    var h='<div class="table-wrap"><table><thead><tr><th>UID</th><th>KYC status</th><th>Active passkeys</th><th>Created time</th><th>Last used</th><th>Action</th></tr></thead><tbody>';
+    slice.forEach(function(u){
+      var n=u.devices.length;
+      h+='<tr><td class="mono">'+esc(u.uid)+'</td><td>'+kycTag(u.kyc)+'</td>'+
+        '<td><span class="cap'+(n>=3?' full':'')+'">'+n+' / 3</span></td>'+
+        '<td>'+esc(u.firstEnrolled)+'</td><td>'+esc(lastUsedOf(u))+'</td>'+
+        '<td><a class="link" href="#/user/'+esc(u.uid)+'">Detail</a></td></tr>';
+    });
+    h+='</tbody></table></div><div class="pager"><span>'+((listState.page-1)*PAGE_SIZE+1)+'–'+Math.min(total,listState.page*PAGE_SIZE)+' of '+total+'</span>'+
+      '<button data-pg="'+(listState.page-1)+'" '+(listState.page<=1?'disabled':'')+' aria-label="Previous page">‹</button>';
+    for(var p=1;p<=pages;p++) h+='<button data-pg="'+p+'" class="'+(p===listState.page?'on':'')+'">'+p+'</button>';
+    h+='<button data-pg="'+(listState.page+1)+'" '+(listState.page>=pages?'disabled':'')+' aria-label="Next page">›</button></div>';
+    body.innerHTML=h;
+    Array.prototype.forEach.call(body.querySelectorAll('[data-pg]'),function(b){b.onclick=function(){listState.page=+b.getAttribute('data-pg');renderList();};});
+  }
+
+  /* ---------- detail page ---------- */
+  var detail={user:null,from:'',to:'',pending:null};
+
+  function openDetail(uid){
+    var u=byUid(uid);
+    detail.user=u; detail.from=''; detail.to='';
+    if(u&&!errOn()) u.audit.unshift({t:now(),ev:'view',actorType:'cs',actor:CS_AGENT,dev:'—',token:'—',cred:'—',reason:'',result:'success'});
+    renderDetail();
+  }
+
+  function renderDetail(){
+    var u=detail.user, err=errOn(), body=$('detailBody');
+    if(!u){ $('detailTitle').textContent='User not found'; $('crumbUid').textContent=''; body.innerHTML='<section class="panel"><div class="empty">User not found.</div></section>'; return; }
+    $('detailTitle').textContent='UID '+u.uid; $('crumbUid').textContent=u.uid;
+    var n=u.devices.length, h='';
+    h+='<section class="panel" aria-label="User summary"><div class="panel-head"><h2>User</h2></div><dl class="summary">'+
+      '<div><dt>UID</dt><dd class="mono">'+esc(u.uid)+'</dd></div>'+
+      '<div><dt>KYC status</dt><dd>'+kycTag(u.kyc)+'</dd></div>'+
+      '<div><dt>Google 2FA</dt><dd>'+esc(u.twofa)+'</dd></div><div><dt>Active passkeys</dt><dd class="cap'+(n>=3?' full':'')+'">'+(err?'—':n+' / 3')+'</dd></div>'+
+      '</dl></section>';
+
+    h+='<section class="panel" aria-label="Passkey devices"><div class="panel-head"><h2>Passkey devices<span class="sub">Active bindings only</span></h2>'+
+      '<button class="btn danger" id="revokeAllBtn" '+((err||!n)?'disabled':'')+'>Revoke all</button></div>';
+    if(err){
+      h+='<div class="alert error">Passkey data is temporarily unavailable (webauthn service did not respond). Revoke is disabled. Please retry later.</div>';
+    } else if(!n){
+      h+='<div class="empty">This user has no active passkey. The user will no longer appear in the list.</div>';
+    } else {
+      h+='<div class="table-wrap"><table><thead><tr><th>Device name</th><th>Platform</th><th>Enrolled at</th><th>Last used</th><th>Credential ID</th><th>Action</th></tr></thead><tbody>';
+      u.devices.forEach(function(d){
+        h+='<tr><td>'+esc(d.name)+'</td><td>'+esc(d.platform)+'</td><td>'+esc(d.created)+'</td><td>'+esc(d.lastUsed)+'</td><td class="mono">'+esc(d.cred)+'</td>'+
+          '<td><button class="link danger" data-revoke="'+d.id+'">Revoke</button></td></tr>';
+      });
+      h+='</tbody></table></div>';
+    }
+    h+='</section>';
+
+        body.innerHTML=h;
+
+    var all=$('revokeAllBtn'); if(all) all.onclick=function(){openRevoke('all');};
+    Array.prototype.forEach.call(body.querySelectorAll('[data-revoke]'),function(b){b.onclick=function(){openRevoke(b.getAttribute('data-revoke'));};});
+    renderLog();
+  }
+
+  var STATUS_DIFF={enroll:['—','Active'],revoke:['Active','Revoked'],expire:['Active','Expired']};
+  function renderLog(){
+    var u=detail.user, b=$('logBody'); if(!u) return;
+    $('fromD').value=detail.from; $('toD').value=detail.to;
+    if(errOn()){ b.innerHTML='<div class="empty">Activity Log is temporarily unavailable.</div>'; return; }
+    var rows=u.audit.filter(function(a){var d=a.t.slice(0,10);return (!detail.from||d>=detail.from)&&(!detail.to||d<=detail.to);});
+    if(!rows.length){ b.innerHTML='<div class="empty">No records in this period.</div>'; return; }
+    var who={user:'User',cs:'CS',system:'System'};
+    b.innerHTML='<ol class="tl">'+rows.map(function(a){
+      var e=EVENT_LABEL[a.ev], h='<li><span class="dot '+e[1]+'"></span>'+
+        '<div class="who">'+esc(who[a.actorType])+' <span class="mono">'+esc(a.actor)+'</span> · '+e[0]+'</div>'+
+        '<div class="when mono">'+esc(a.t)+'</div>';
+      if(a.ev!=='view'){
+        h+='<div class="meta"><span>Device: '+esc(a.dev)+'</span><span class="mono">'+esc(a.token)+'</span><span class="mono">'+esc(a.cred)+'</span></div>';
+        var df=STATUS_DIFF[a.ev];
+        h+='<table class="diff"><thead><tr><th>Field</th><th>From</th><th>To</th></tr></thead><tbody><tr><td>Passkey status</td><td>'+df[0]+'</td><td class="to">'+df[1]+'</td></tr></tbody></table>';
+      }
+      if(a.reason||a.note) h+='<div class="memo">'+(a.reason?'Reason: '+esc(REASON_LABEL[a.reason]||a.reason):'')+(a.note?(a.reason?'<br>':'')+'Note: '+esc(a.note):'')+'</div>';
+      return h+'</li>';
+    }).join('')+'</ol>';
+  }
+  function openLog(){ renderLog(); $('logMask').classList.add('open'); $('logDrawer').classList.add('open'); }
+  function closeLog(){ $('logMask').classList.remove('open'); $('logDrawer').classList.remove('open'); }
+
+  /* ---------- revoke ---------- */
+  function openRevoke(target){
+    var u=detail.user; detail.pending=target;
+    var list=target==='all'?u.devices:u.devices.filter(function(d){return d.id===target;});
+    $('revokeTitle').textContent=target==='all'?'Revoke all passkeys':'Revoke passkey';
+    $('revokeTarget').innerHTML='<div class="muted">UID <span class="mono">'+esc(u.uid)+'</span> · '+(target==='all'?'All '+list.length+' active devices will be revoked':'1 device will be revoked')+'</div><ul>'+
+      list.map(function(d){return '<li>'+esc(d.name)+' <span class="muted">('+esc(d.platform)+', last used '+esc(d.lastUsed)+')</span></li>';}).join('')+'</ul>';
+    $('confirmRevoke').textContent=target==='all'?'Revoke all ('+list.length+')':'Revoke';
+    $('reasonSel').value='';$('noteTxt').value='';$('noteReq').hidden=true;
+    $('fReason').classList.remove('invalid');$('fNote').classList.remove('invalid');
+    $('revokeMask').classList.add('open');$('reasonSel').focus();
+  }
+  function closeRevoke(){$('revokeMask').classList.remove('open');detail.pending=null;}
+  function confirmRevoke(){
+    var reason=$('reasonSel').value,note=$('noteTxt').value.trim(),ok=true;
+    $('fReason').classList.toggle('invalid',!reason); if(!reason) ok=false;
+    var needNote=reason==='other'&&!note; $('fNote').classList.toggle('invalid',needNote); if(needNote) ok=false;
+    if(!ok) return;
+    var u=detail.user,target=detail.pending,t=now();
+    var list=target==='all'?u.devices.slice():u.devices.filter(function(d){return d.id===target;});
+    list.forEach(function(d){u.audit.unshift({t:t,ev:'revoke',actorType:'cs',actor:CS_AGENT,dev:d.name,token:d.token,cred:d.cred,reason:reason,note:note,result:'success'});});
+    u.devices=u.devices.filter(function(d){return list.indexOf(d)<0;});
+    closeRevoke(); renderDetail();
+    toast((list.length>1?list.length+' passkeys revoked':'Passkey revoked')+'. Email notification sent to the user.');
+  }
+  function toast(msg){$('toastMsg').textContent=msg;var el=$('toast');el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.remove('show');},3200);}
+
+  /* ---------- routing & controls ---------- */
+  function route(){
+    var cs=$('roleSel').value==='cs';
+    $('navPasskey').style.display=cs?'':'none';
+    $('pageNoAccess').hidden=cs;
+    var m=location.hash.match(/^#\/user\/(\d{5})/);
+    $('pageList').hidden=!cs||!!m; $('pageDetail').hidden=!cs||!m;
+    if(!cs) return;
+    if(m){ if(!detail.user||detail.user.uid!==m[1]) openDetail(m[1]); else renderDetail(); }
+    else { detail.user=null; renderList(); }
+    window.scrollTo(0,0);
+  }
+  function goList(e){if(e)e.preventDefault();closeLog();location.hash='#/';}
+
+  $('searchForm').onsubmit=function(e){e.preventDefault();listState.type=$('searchType').value;listState.q=$('searchInput').value;listState.page=1;renderList();};
+  $('resetBtn').onclick=function(){$('searchInput').value='';listState.q='';listState.page=1;renderList();};
+  $('searchType').onchange=function(){$('searchInput').placeholder={uid:'Enter UID',email:'Enter full Email',phone:'Enter phone number with country code'}[this.value];};
+  $('backBtn').onclick=goList; $('crumbBack').onclick=goList; $('navPasskey').onclick=goList; $('navPasskey').style.cursor='pointer';
+  $('reasonSel').onchange=function(){$('noteReq').hidden=this.value!=='other';$('fReason').classList.remove('invalid');};
+  $('noteTxt').oninput=function(){$('fNote').classList.remove('invalid');};
+  $('confirmRevoke').onclick=confirmRevoke;
+  $('logBtn').onclick=openLog; $('logClose').onclick=closeLog; $('logMask').onclick=closeLog;
+  $('fromD').onchange=function(){detail.from=this.value;renderLog();};
+  $('toD').onchange=function(){detail.to=this.value;renderLog();};
+  $('clearDates').onclick=function(){detail.from='';detail.to='';renderLog();};
+  Array.prototype.forEach.call(document.querySelectorAll('[data-close]'),function(b){b.onclick=closeRevoke;});
+  $('revokeMask').onclick=function(e){if(e.target===this)closeRevoke();};
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeRevoke();closeLog();}});
+  $('errChk').onchange=function(){ if(detail.user) renderDetail(); else renderList(); };
+  $('roleSel').onchange=route;
+  window.addEventListener('hashchange',route);
+  route();
+})();
+</script>
+</body>
+</html>
